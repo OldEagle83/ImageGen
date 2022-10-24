@@ -6,11 +6,15 @@ import re
 import downloader
 import logging
 import manipulation
+from nltk import WordNetLemmatizer
 # import messages  # Todo: add messages for console input menu
 
 # nltk.download('averaged_perceptron_tagger')
+# nltk.download('omw-1.4')
+# nltk.download('wordnet')
+
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
-level = 'DEBUG'
 
 
 class Quote:
@@ -40,12 +44,17 @@ class Quote:
         self.verbs = self.get_pos('VB')
         self.adjectives = self.get_pos('JJ')
 
+
     def get_pos(self, pos):
         # Returns a list with the words that are of the given part of speech
         is_pos = lambda part: part[:2] == pos
         tokenized = nltk.wordpunct_tokenize(self.text)
         results = [word for (word, pos) in nltk.pos_tag(tokenized) if is_pos(pos)]
-        return sorted([x for x in results if len(x) > 1 and x.lower() not in self.banned], key=len, reverse=True)
+        if pos == 'VB':
+            results = [WordNetLemmatizer().lemmatize(word, 'v') for word in results]
+        results = sorted([x for x in results if len(x) > 1 and x.lower() not in self.banned], key=len, reverse=True)
+        logging.debug(results)
+        return results
 
 
 quote = Quote()
@@ -57,7 +66,7 @@ if quote.nouns:
     else:
         img_folder = downloader.download(quote.nouns[0], 3)
 
-image = manipulation.Img(random.choice(os.listdir(img_folder)), text=quote.text, author=quote.author)
+image = manipulation.Img(img_folder + '/' + random.choice(os.listdir(img_folder)), text=quote.text, author=quote.author)
 image.draw()
 
 # search_str = ''
