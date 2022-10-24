@@ -9,7 +9,7 @@ import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
-def GET_UA():
+def get_ua():
     uastrings = [
         "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.111 Safari/537.36", \
         "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36", \
@@ -31,7 +31,7 @@ headers = {
     'Access-Control-Allow-Methods': 'GET',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '3600',
-    'User-Agent': f'{GET_UA()}'
+    'User-Agent': f'{get_ua()}'
     }
 
 
@@ -70,6 +70,7 @@ def parse_urls(a):
 
 
 def download_from_list(url_list, folder):
+    # Downloads every file in url list, in folder
     counter = 0
     folder = nametize(folder)
     for url in url_list:
@@ -99,19 +100,22 @@ def create_dir(name):
         print(f'Directory {name} exists, moving on.')
 
 def nametize(text):
-    # Replaces all spaces with underscore
+    # Replaces all spaces with underscore and turns letters to lowercase
     if ' ' in text:
         text = text.replace(' ', '_').lower()
     return text
 
-def download(phrase):
-    # Downloads 16 pictures from Unsplash, landscape orientation, returns dir path
+def download(phrase, limit):
+    """
+    Downloads 16 pictures from Unsplash, landscape orientation, returns dir path
+    """
     folder = nametize(phrase)
     if not os.path.exists(f'/img/{folder}'):
         create_dir(folder)
         a_results = get_links(get_soup(phrase + ' faceless textless', 'landscape'))
-        download_from_list(parse_urls(a_results), folder)
-    return f'/img/{folder}'
+        download_from_list(parse_urls(a_results)[:limit], folder)
+    return f'img/{folder}'
+
 
 if __name__ == '__main__':
     pass
