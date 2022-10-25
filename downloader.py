@@ -8,7 +8,7 @@ import logging
 import string
 
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s [%(levelname)s] %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
 def get_ua():
     uastrings = [
@@ -36,7 +36,7 @@ headers = {
     }
 
 
-def get_soup(search, orientation):
+def get_soup(search: str, orientation: str) -> BeautifulSoup:
     """
     Builds soup for unsplash
     :param search: the search parameter for images
@@ -51,14 +51,18 @@ def get_soup(search, orientation):
     return soup
 
 
-def get_links(s):
+def get_links(s) -> list:
     # Returns all a tags from a soup (s)
     results = s.findAll("a")
     return results
 
 
-def parse_urls(a):
-    # Returns all urls in a list. Accepts a soup findall(a) result
+def parse_urls(a: list) -> list:
+    """
+    Returns all urls in a list. Accepts a soup findall(a) result
+    :param a: soup.findall(a) result
+    :return: urls
+    """
     urls = []
     for res in a:
         try:
@@ -70,8 +74,13 @@ def parse_urls(a):
     return urls
 
 
-def download_from_list(url_list, folder):
-    # Downloads every file in url list, to folder
+def download_from_list(url_list: list, folder: str):
+    """
+    Downloads every file in url_list to folder
+    :param url_list: list of urls to download
+    :param folder: folder to download to
+    :return:
+    """
     counter = 0
     logging.debug(f'Downloading {len(url_list)} files to {folder}')
 
@@ -97,8 +106,12 @@ def download_from_list(url_list, folder):
     logging.info(f'Saved {counter} in img/{folder}')
 
 
-def create_dir(name):
-    # Creates a subdirectory (if it doesn't exist) in img/ directory
+def create_dir(name: str):
+    """
+    Creates a subdirectory (if it doesn't exist) in img/ directory
+    :param name: folder name (proofed)
+    :return:
+    """
     cwd = os.getcwd()
     try:
         os.mkdir(cwd + '/img/' + name)
@@ -106,8 +119,12 @@ def create_dir(name):
         print(f'Directory {name} exists, moving on.')
 
 
-def nametize(text: str):
-    # Replaces all spaces with underscore and turns letters to lowercase, ignores all other characters
+def nametize(text: str) -> str:
+    """
+    Replaces all spaces with underscore and turns letters to lowercase, ignores all other characters
+    :param text: short text
+    :return: snakecase of text
+    """
     result = ''
     for i, char in enumerate(text):
         if char == ' ' and 0 < i < len(text) - 1:
@@ -118,16 +135,20 @@ def nametize(text: str):
     return result
 
 
-def download(phrase, limit):
+def download(phrase: str, limit: int, orientation='landscape') -> str:
     """
     Downloads [limit] pictures from Unsplash, landscape orientation, returns dir path. Will skip if directory exists
+    :param orientation: orientation of pictures to download
+    :param phrase: phrase to search for
+    :param limit: how many files to download
+    :return: destination folder (relative path)
     """
 
     folder = nametize(phrase)
 
     if not os.path.exists(f'img/{folder}'):
         create_dir(folder)
-        a_results = get_links(get_soup(phrase + ' faceless textless', 'landscape'))
+        a_results = get_links(get_soup(phrase + ' faceless textless', orientation))
         download_from_list(parse_urls(a_results)[:limit], folder)
 
     return f'img/{folder}'
