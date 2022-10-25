@@ -1,18 +1,30 @@
-from PIL import Image, ImageFilter, ImageFont, ImageDraw
+from PIL import Image, ImageFilter, ImageFont, ImageDraw, ImageStat
+import math
 import textwrap
+import logging
 
 class Img:
-    def __init__(self, path, text, author):
+    def __init__(self, path, text, author, orientation='landscape'):
         self.image = Image.open(path)
         self.width, self.height = self.image.size
         self.text = text
         self.author = author if author else ""
+        self.orientation = orientation
+        self.bright = self.brightness()
+
+    def brightness(self):
+        # Returns the median brightness of the image
+
+        stat = ImageStat.Stat(self.image)
+        r, g, b = stat.mean
+        return math.sqrt(0.241 * (r ** 2) + 0.691 * (g ** 2) + 0.068 * (b ** 2))
 
     def blur(self, amount: int):
         return self.image.filter(ImageFilter.GaussianBlur(amount))
 
     def draw(self):
         text_size = int(self.width/33)
+        print(f'Perceived image brightness: {self.bright}')
 
         # Set up fonts
         font = ImageFont.truetype('fonts/SpecialElite-Regular.ttf', text_size)
@@ -26,24 +38,34 @@ class Img:
         # Set the height for the first line
         rolling_height = self.height/2 - (text_size * (int(len(lines)/2) + 1))
 
+        max_width = 0
+
+        # Check image brightness, set font color to black if image is too bright
+        if self.bright < 100:
+            font_color = (255, 255, 255, 255)
+        else:
+            font_color = (0, 0, 0, 0)
+
         for i, line in enumerate(lines):
 
             # The last line is the author
             if i == len(lines) - 1:
-                width = author_font.getlength(line)
+                author_width = author_font.getlength(line)
                 rolling_height += text_size * 2
-                image_editable.text((self.width - (self.width - width) / 2 - width, rolling_height), line, font=author_font)
+                image_editable.text((self.width - author_width - max_width * 0.3, rolling_height),
+                                    '—' + line, font=author_font, fill=font_color)
                 break
 
             width = font.getlength(line)
+            max_width = width if max_width < width else max_width
             rolling_height += text_size + int(text_size * 15/100)
-            image_editable.text((self.width - (self.width - width)/2 - width, rolling_height), line, font=font)
+            image_editable.text((self.width - (self.width - width)/2 - width, rolling_height), line,
+                                font=font, fill=font_color)
 
         blurred_img.show()
 
 
-# draw('img/empty_roads/MnwxMjA3fDB8MXxzZWFyY2h8M3x8ZHJvbmUlMjBzaG90c3xlbnwwfDB8fHwxNjY2NDg1NjQ1.jpg', "The hard days are what make you stronger.")
-
 if __name__ == '__main__':
-    image = Img('img/empty_roads/MnwxMjA3fDB8MXxzZWFyY2h8M3x8ZHJvbmUlMjBzaG90c3xlbnwwfDB8fHwxNjY2NDg1NjQ1.jpg', 'One liner to test height', 'John Geroitos')
+    image = Img('img/drone_shots/MnwxMjA3fDB8MXxzZWFyY2h8MTJ8fGVtcHR5JTIwcm9hZHxlbnwwfDB8fHwxNjY2NDg0NjAw.jpg',
+                'Long quotes should be split to multiple lines and each line should be centered.', 'Albert Einstein')
     image.draw()
