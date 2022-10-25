@@ -5,9 +5,10 @@ import random
 import time
 import os
 import logging
+import string
 
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s [%(levelname)s] %(message)s')
 
 def get_ua():
     uastrings = [
@@ -70,58 +71,69 @@ def parse_urls(a):
 
 
 def download_from_list(url_list, folder):
-    # Downloads every file in url list, in folder
+    # Downloads every file in url list, to folder
     counter = 0
-    folder = nametize(folder)
+    logging.debug(f'Downloading {len(url_list)} files to {folder}')
+
     for url in url_list:
         for match in re.finditer(r'ixid=([a-zA-Z0-9]+)&', url, re.MULTILINE):
             f_name = match.group(1)
         response = requests.get(url)
+
         if response.status_code < 299:
             path = f'img/{folder}/{f_name}.jpg'
+
             with open(path, 'wb') as fp:
                 fp.write(response.content)
             counter += 1
             print('.', end='')
+
         else:
             print('f', end='')
+
         time.sleep(random.randint(2, 5))
+
     print('Done')
     logging.info(f'Saved {counter} in img/{folder}')
 
 
 def create_dir(name):
     # Creates a subdirectory (if it doesn't exist) in img/ directory
-    name = nametize(name)
     cwd = os.getcwd()
     try:
         os.mkdir(cwd + '/img/' + name)
     except OSError:
         print(f'Directory {name} exists, moving on.')
 
-def nametize(text):
-    # Replaces all spaces with underscore and turns letters to lowercase
-    if ' ' in text:
-        text = text.replace(' ', '_').lower()
-    return text
+
+def nametize(text: str):
+    # Replaces all spaces with underscore and turns letters to lowercase, ignores all other characters
+    result = ''
+    for i, char in enumerate(text):
+        if char == ' ' and 0 < i < len(text) - 1:
+            result += '_'
+        elif char.lower() in string.ascii_lowercase:
+            result += char.lower()
+
+    return result
+
 
 def download(phrase, limit):
     """
-    Downloads 16 pictures from Unsplash, landscape orientation, returns dir path
+    Downloads [limit] pictures from Unsplash, landscape orientation, returns dir path. Will skip if directory exists
     """
+
     folder = nametize(phrase)
-    if not os.path.exists(f'/img/{folder}'):
+
+    if not os.path.exists(f'img/{folder}'):
         create_dir(folder)
         a_results = get_links(get_soup(phrase + ' faceless textless', 'landscape'))
         download_from_list(parse_urls(a_results)[:limit], folder)
+
     return f'img/{folder}'
 
 
 if __name__ == '__main__':
-    pass
-    # search_field = input('What do you want to download from unsplash?')
-    # orientation = input('What orientation of pics? Landscape/Portrait/Square')
-    #
-    # create_dir(search_field)
-
+    assert nametize('Some Text') == 'some_text'
+    assert nametize(' s0me MesSed t$xt') == 'sme_messed_txt'
 
