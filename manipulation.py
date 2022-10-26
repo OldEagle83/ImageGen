@@ -1,7 +1,8 @@
 from PIL import Image, ImageFilter, ImageFont, ImageDraw, ImageStat
 import math
 import textwrap
-import logging
+import logging  # Add logging
+
 
 class Img:
     def __init__(self, path, text, author, orientation='landscape'):
@@ -23,6 +24,8 @@ class Img:
         return self.image.filter(ImageFilter.GaussianBlur(amount))
 
     def draw(self):
+        # Draw the selected quote on the image. Wrap quote, decide font color based on
+        # perceived brightness and show it
         text_size = int(self.width/33)
         print(f'Perceived image brightness: {self.bright}')
 
@@ -63,6 +66,7 @@ class Img:
                                 font=font, fill=font_color)
 
         blurred_img.show()
+        return blurred_img
 
 
 if __name__ == '__main__':
