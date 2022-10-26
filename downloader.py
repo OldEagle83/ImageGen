@@ -10,6 +10,7 @@ import string
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
+
 def get_ua():
     uastrings = [
         "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.111 Safari/537.36", \
@@ -36,7 +37,7 @@ headers = {
     }
 
 
-def get_soup(search: str, orientation: str) -> BeautifulSoup:
+def get_soup(search: str, orientation: str, color=None) -> BeautifulSoup:
     """
     Builds soup for unsplash
     :param search: the search parameter for images
@@ -44,8 +45,12 @@ def get_soup(search: str, orientation: str) -> BeautifulSoup:
     :return: Soup if valid, else False
     """
     if orientation not in ['landscape', 'portrait', 'square']:
-        return False
-    url = f"https://unsplash.com/s/photos/{search}?orientation={orientation}"
+        orientation = 'landscape'
+    url = f"https://unsplash.com/s/photos/{search}"
+    if orientation:
+        url += f'?orientation={orientation}'
+    if color:
+        url += f'?color={color}'
     req = requests.get(url, headers)
     soup = BeautifulSoup(req.content, 'html.parser')
     return soup
@@ -53,7 +58,10 @@ def get_soup(search: str, orientation: str) -> BeautifulSoup:
 
 def get_links(s) -> list:
     # Returns all a tags from a soup (s)
-    results = s.findAll("a")
+    if s:
+        results = s.findAll("a")
+    else:
+        return False
     return results
 
 
@@ -135,7 +143,7 @@ def nametize(text: str) -> str:
     return result
 
 
-def download(phrase: str, limit: int, orientation='landscape') -> str:
+def download(phrase: str, limit: int, orientation='landscape', color=None) -> str:
     """
     Downloads [limit] pictures from Unsplash, landscape orientation, returns dir path. Will skip if directory exists
     :param orientation: orientation of pictures to download
@@ -148,7 +156,7 @@ def download(phrase: str, limit: int, orientation='landscape') -> str:
 
     if not os.path.exists(f'img/{folder}'):
         create_dir(folder)
-        a_results = get_links(get_soup(phrase + ' faceless textless', orientation))
+        a_results = get_links(get_soup(phrase + ' faceless textless', orientation, color))
         download_from_list(parse_urls(a_results)[:limit], folder)
 
     return f'img/{folder}'
