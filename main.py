@@ -30,7 +30,6 @@ class Quote:
         else:
             self.build_pos()
 
-
     def get_quote(self) -> tuple:
         # Get a random quote from quotes.txt
         with open('quotes.txt', 'r') as f:
@@ -68,7 +67,7 @@ class Quote:
         return results
 
 
-def start(text=None, author=None, orientation=None):
+def start(text=None, author=None, orientation=None, color=None):
     if not text:
         quote = Quote()
     else:
@@ -78,13 +77,14 @@ def start(text=None, author=None, orientation=None):
     if quote.nouns:
         if quote.verbs:
             img_folder = downloader.download(quote.nouns[0] + ' ' + quote.verbs[0], 8,
-                                             orientation=orientation)
+                                             orientation=orientation, color=None)
         else:
-            img_folder = downloader.download(quote.nouns[0], 8, orientation=orientation)
+            img_folder = downloader.download(quote.nouns[0], 8, orientation=orientation, color=color)
 
     image = manipulation.Img(img_folder + '/' + random.choice(os.listdir(img_folder)), text=quote.text,
                              author=quote.author)
     image.draw()
+
 
 def ask_orientation():
     orientation = input(messages.enter_or)
@@ -94,20 +94,36 @@ def ask_orientation():
         orientation = None
     return orientation
 
+
+def ask_color():
+    colors = ['black', 'white', 'yellow', 'orange', 'red', 'blue', 'green' 'purple', 'magenta', 'teal']
+    color = input(messages.enter_color)
+    if color.lower() in colors:
+        return color.lower()
+    return None
+
+
 def menu():
     while True:
         print(messages.welcome)
         print(messages.main_menu)
         selection = input()
-        if selection == '1':
-            start(orientation=ask_orientation())
-        elif selection == '2':
-            quote_text = input(messages.enter_quote)
-            quote_author = input(messages.enter_author)
-            start(text=quote_text, author=quote_author, orientation=ask_orientation())
+        # try:
+        if selection.isnumeric():
+            if int(selection) == 1:
+                start()
+            elif int(selection) == 2:
+                quote_text = input(messages.enter_quote)
+                quote_author = input(messages.enter_author)
+                start(text=quote_text, author=quote_author, orientation=ask_orientation(), color=ask_color())
         else:
             break
+        # except TypeError:
+        #     print(messages.wrong_value)
+        #     continue
+
 
 if __name__ == '__main__':
     menu()
-
+else:
+    pass  # TODO: return resulting image or path
