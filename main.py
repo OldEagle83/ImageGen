@@ -28,7 +28,7 @@ class Quote:
         if not self.text:
             self.get_quote()
         else:
-            self.build_pos()
+            self.search_str = self.build_pos()
 
     def get_quote(self) -> tuple:
         # Get a random quote from quotes.txt
@@ -44,12 +44,20 @@ class Quote:
 
         self.author = [match.group(1) for match in re.finditer(r'[—―]([ .A-Za-z]+)', text)][0]
         self.text = [match.group(1) for match in re.finditer(r'(.+) *[—―]', text)][0].strip().replace('"', '')
-        self.build_pos()
+        self.search_str = self.build_pos()
 
     def build_pos(self):
         self.nouns = self.get_pos('NN')
         self.verbs = self.get_pos('VB')
         self.adjectives = self.get_pos('JJ')
+        phrase = random.choice(self.nouns) if self.nouns else ''
+        phrase += ' ' + random.choice(self.adjectives) \
+            if self.adjectives \
+            else ' ' + random.choice(self.verbs) \
+            if self.verbs \
+            else ''
+
+        return phrase
 
     def get_pos(self, pos: str) -> list:
         """
@@ -63,7 +71,7 @@ class Quote:
         if pos == 'VB':
             results = [WordNetLemmatizer().lemmatize(word, 'v') for word in results]
         results = sorted([x for x in results if len(x) > 1 and x.lower() not in self.banned], key=len, reverse=True)
-        logging.debug(f'{pos}: {results}')
+        logging.info(f'{pos}: {results}')
         return results
 
 
@@ -74,15 +82,8 @@ def start(text=None, author=None, orientation=None, color=None):
         quote = Quote(text, author)
 
     logging.info(f'Selected: {quote.text} by {quote.author}')
-    if quote.nouns:
-        if quote.verbs:
-            img_folder = downloader.download(quote.nouns[0] + ' ' + quote.verbs[0], 8,
-                                             orientation=orientation, color=None)
-        else:
-            img_folder = downloader.download(quote.nouns[0], 8, orientation=orientation, color=color)
-
-    image = manipulation.Img(img_folder + '/' + random.choice(os.listdir(img_folder)), text=quote.text,
-                             author=quote.author)
+    gen = downloader.img_gen(quote.search_str, orientation=orientation, color=color)
+    image = manipulation.Img(next(gen), quote)
     image.draw()
 
 
@@ -116,11 +117,12 @@ def menu():
                 quote_text = input(messages.enter_quote)
                 quote_author = input(messages.enter_author)
                 start(text=quote_text, author=quote_author, orientation=ask_orientation(), color=ask_color())
+            else:
+                break
+
         else:
             break
-        # except TypeError:
-        #     print(messages.wrong_value)
-        #     continue
+
 
 
 if __name__ == '__main__':
