@@ -1,15 +1,18 @@
 from PIL import Image, ImageFilter, ImageFont, ImageDraw, ImageStat
 import math
 import textwrap
+
+import downloader
+import main
 import logging  # Add logging
 
 
 class Img:
-    def __init__(self, path, text, author, orientation='landscape'):
-        self.image = Image.open(path)
+    def __init__(self, img: bytes, quote, orientation='landscape'):
+        self.image = Image.open(img)
         self.width, self.height = self.image.size
-        self.text = text
-        self.author = author if author else ""
+        self.text = quote.text
+        self.author = quote.author if quote.author else ''
         self.orientation = orientation
         self.bright = self.brightness()
 
@@ -39,37 +42,50 @@ class Img:
         lines = textwrap.wrap(self.text, width=45) + [self.author]
 
         # Set the height for the first line
-        rolling_height = self.height/2 - (text_size * (int(len(lines)/2) + 1))
+        y = self.height/2 - (text_size * (int(len(lines)/2) + 1))
 
         max_width = 0
 
         # Check image brightness, set font color to black if image is too bright
         if self.bright < 100:
             font_color = (255, 255, 255, 255)
+            outline_color = (225, 225, 225, 1)
+
         else:
             font_color = (0, 0, 0, 0)
+            outline_color = (30, 30, 30, 1)
 
         for i, line in enumerate(lines):
 
             # The last line is the author
             if i == len(lines) - 1:
                 author_width = author_font.getlength(line)
-                rolling_height += text_size * 2
-                image_editable.text((self.width - author_width - max_width * 0.3, rolling_height),
+                y += text_size * 2
+                image_editable.text((self.width - author_width - max_width * 0.3, y),
                                     '—' + line, font=author_font, fill=font_color)
                 break
 
             width = font.getlength(line)
             max_width = width if max_width < width else max_width
-            rolling_height += text_size + int(text_size * 15/100)
-            image_editable.text((self.width - (self.width - width)/2 - width, rolling_height), line,
-                                font=font, fill=font_color)
+            y += text_size + int(text_size * 15/100)
+            x = self.width - (self.width - width)/2 - width
+
+            # Draw outline of text
+            image_editable.text((x - 1, y), line, font=font, fill=outline_color)
+            image_editable.text((x + 1, y), line, font=font, fill=outline_color)
+            image_editable.text((x, y - 1), line, font=font, fill=outline_color)
+            image_editable.text((x, y + 1), line, font=font, fill=outline_color)
+
+            # Draw text over the outline
+            image_editable.text((x, y), line, font=font, fill=font_color)
+
 
         blurred_img.show()
         return blurred_img
 
 
 if __name__ == '__main__':
-    image = Img('img/drone_shots/MnwxMjA3fDB8MXxzZWFyY2h8MTJ8fGVtcHR5JTIwcm9hZHxlbnwwfDB8fHwxNjY2NDg0NjAw.jpg',
-                'Long quotes should be split to multiple lines and each line should be centered.', 'Albert Einstein')
+    quote = main.Quote()
+    gen = downloader.img_gen(quote.search_str)
+    image = Img(next(gen), quote)
     image.draw()
