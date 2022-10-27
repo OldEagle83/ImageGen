@@ -1,3 +1,6 @@
+import io
+
+from PIL import Image
 from bs4 import BeautifulSoup
 import requests
 import re
@@ -82,36 +85,21 @@ def parse_urls(a: list) -> list:
     return urls
 
 
-def download_from_list(url_list: list, folder: str):
-    """
-    Downloads every file in url_list to folder
-    :param url_list: list of urls to download
-    :param folder: folder to download to
-    :return:
-    """
-    counter = 0
-    logging.debug(f'Downloading {len(url_list)} files to {folder}')
+def img_gen(phrase, orientation='landscape', color=None):
+    a_results = get_links(get_soup(phrase + ' faceless textless', orientation, color))
+    url_list = parse_urls(a_results)
 
-    for url in url_list:
-        for match in re.finditer(r'ixid=([a-zA-Z0-9]+)&', url, re.MULTILINE):
-            f_name = match.group(1)
-        response = requests.get(url)
+    while url_list:
+        selected = random.choice(url_list)
+        url_list.remove(selected)
+        response = requests.get(selected)
 
         if response.status_code < 299:
-            path = f'img/{folder}/{f_name}.jpg'
-
-            with open(path, 'wb') as fp:
-                fp.write(response.content)
-            counter += 1
-            print('.', end='')
+            logging.info(f'Got response {response.status_code}, content size: {len(response.content)}')
+            yield io.BytesIO(response.content)
 
         else:
-            print('f', end='')
-
-        time.sleep(random.randint(2, 5))
-
-    print('Done')
-    logging.info(f'Saved {counter} in img/{folder}')
+            logging.info(f'Downloading failed, moving to next url')
 
 
 def create_dir(name: str):
@@ -143,26 +131,35 @@ def nametize(text: str) -> str:
     return result
 
 
-def download(phrase: str, limit: int, orientation='landscape', color=None) -> str:
-    """
-    Downloads [limit] pictures from Unsplash, landscape orientation, returns dir path. Will skip if directory exists
-    :param orientation: orientation of pictures to download
-    :param phrase: phrase to search for
-    :param limit: how many files to download
-    :return: destination folder (relative path)
-    """
-
-    folder = nametize(phrase)
-
-    if not os.path.exists(f'img/{folder}'):
-        create_dir(folder)
-        a_results = get_links(get_soup(phrase + ' faceless textless', orientation, color))
-        download_from_list(parse_urls(a_results)[:limit], folder)
-
-    return f'img/{folder}'
+# def download(phrase: str, limit: int, orientation='landscape', color=None) -> str:
+#     """
+#     Downloads [limit] pictures from Unsplash, landscape orientation, returns dir path. Will skip if directory exists
+#     :param orientation: orientation of pictures to download
+#     :param phrase: phrase to search for
+#     :param limit: how many files to download
+#     :return: destination folder (relative path)
+#     """
+#
+#     folder = nametize(phrase)
+#
+#     if not os.path.exists(f'img/{folder}'):
+#         create_dir(folder)
+#         a_results = get_links(get_soup(phrase + ' faceless textless', orientation, color))
+#         gen = img_gen(parse_urls(a_results), folder)
+#
+#     return f'img/{folder}'
 
 
 if __name__ == '__main__':
     assert nametize('Some Text') == 'some_text'
     assert nametize(' s0me MesSed t$xt') == 'sme_messed_txt'
+    gen = img_gen(phrase='light play')
+    while True:
+        img = Image.open(next(gen))
+        img.show()
+        res = input('Load next image? (y/n) ')
+        if res.lower() == 'y':
+            continue
+        else:
+            break
 
