@@ -3,9 +3,7 @@ import io
 from PIL import Image
 from bs4 import BeautifulSoup
 import requests
-import re
 import random
-import time
 import os
 import logging
 import string
@@ -86,17 +84,19 @@ def parse_urls(a: list) -> list:
 
 
 def img_gen(phrase, orientation='landscape', color=None):
-    a_results = get_links(get_soup(phrase + ' faceless textless', orientation, color))
+    # Generator: Searches keywords from phrase in unsplash.com, yields an image
+    a_results = get_links(get_soup(phrase + ' positive', orientation, color))
     url_list = parse_urls(a_results)
 
     while url_list:
-        selected = random.choice(url_list)
-        url_list.remove(selected)
+        logging.info(f'{len(url_list)} image options left')
+        selected = url_list[0]
+        url_list.pop(0)
         response = requests.get(selected)
 
         if response.status_code < 299:
-            logging.info(f'Got response {response.status_code}, content size: {len(response.content)}')
-            yield io.BytesIO(response.content)
+            logging.info(f'Response {response.status_code}, content size: {round(len(response.content)/1000000, 2)}mb')
+            yield Image.open(io.BytesIO(response.content))
 
         else:
             logging.info(f'Downloading failed, moving to next url')
@@ -129,25 +129,6 @@ def nametize(text: str) -> str:
             result += char.lower()
 
     return result
-
-
-# def download(phrase: str, limit: int, orientation='landscape', color=None) -> str:
-#     """
-#     Downloads [limit] pictures from Unsplash, landscape orientation, returns dir path. Will skip if directory exists
-#     :param orientation: orientation of pictures to download
-#     :param phrase: phrase to search for
-#     :param limit: how many files to download
-#     :return: destination folder (relative path)
-#     """
-#
-#     folder = nametize(phrase)
-#
-#     if not os.path.exists(f'img/{folder}'):
-#         create_dir(folder)
-#         a_results = get_links(get_soup(phrase + ' faceless textless', orientation, color))
-#         gen = img_gen(parse_urls(a_results), folder)
-#
-#     return f'img/{folder}'
 
 
 if __name__ == '__main__':
